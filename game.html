@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preguntas biblicas</title>
+    <style>
+        /* --- VARIABLES Y RESET --- */
+        :root {
+            --bg-dark: #020c1b;
+            --bg-panel: #0a192f;
+            --primary-blue: #112240;
+            --accent-gold: #FFD700;
+            --accent-orange: #ff9f1c;
+            --text-light: #e6f1ff;
+            --text-dim: #8892b0;
+            --correct-color: #2ecc71;
+            --wrong-color: #e74c3c;
+            --ladder-active: #64ffda;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- PANTALLA DE INICIO --- */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 12, 27, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            transition: opacity 0.5s ease;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--accent-gold);
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .btn-start {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-orange), #d35400);
+            color: white;
+            border: 2px solid var(--accent-gold);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 20px rgba(255, 159, 28, 0.4);
+        }
+
+        .btn-start:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 159, 28, 0.6);
+        }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        #game-container {
+            display: flex;
+            flex: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        /* --- ÁREA DE JUEGO (IZQUIERDA/CENTRO) --- */
+        #play-area {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* LOGO PEQUEÑO */
+        .logo-small {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 100px;
+            opacity: 0.7;
+        }
+        .logo-small circle, .logo-small path {
+            fill: var(--accent-gold);
+        }
+
+        /* COMODINES */
+        #lifelines {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .lifeline-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #303c55, #1b263b);
+            border: 2px solid var(--text-dim);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .lifeline-btn:hover:not(:disabled) {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            transform: scale(1.1);
+        }
+
+        .lifeline-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .lifeline-btn::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: red;
+            transform: rotate(45deg);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .lifeline-btn:disabled::after {
+            opacity: 1;
+        }
+
+        /* CAJA DE PREGUNTA */
+        #question-box {
+            background: linear-gradient(to bottom, #000, #1a1a1a);
+            border: 2px solid var(--text-light);
+            border-radius: 15px;
+            padding: 30px;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        #question-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* RESPUESTAS */
+        #answers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .answer-btn {
+            background: linear-gradient(to right, #000 0%, #1a1a1a 10%, #000 100%);
+            border: 1px solid var(--text-dim);
+            color: var(--text-light);
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            text-align: left;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            /* Forma hexagonal recortada */
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+            padding-left: 40px; /* Espacio para la letra */
+        }
+
+        .answer-btn:hover {
+            background: var(--accent-orange);
+            color: #000;
+            border-color: var(--accent-gold);
+        }
+
+        .answer-btn.selected {
+            background: var(--accent-orange);
+            color: #000;
+        }
+
+        .answer-btn.correct {
+            background: var(--correct-color) !important;
+            color: white;
+            animation: flash 0.5s;
+        }
+
+        .answer-btn.wrong {
+            background: var(--wrong-color) !important;
+            color: white;
+        }
+
+        .answer-letter {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: var(--accent-gold);
+        }
+        .answer-btn:hover .answer-letter, .answer-btn.selected .answer-letter {
+            color: #000;
+        }
+
+        /* --- ESCALERA DE DINERO (DERECHA) --- */
+        #ladder-container {
+            flex: 1;
+            background: #000;
+            border-left: 2px solid var(--accent-gold);
+            display: flex;
+            flex-direction: column-reverse; /* El nivel 1 abajo */
+            justify-content: center;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .ladder-step {
+            padding: 10px;
+            margin: 2px 0;
+            color: var(--accent-orange);
+            text-align: right;
+            font-weight: bold;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ladder-step.active {
+            background: var(--accent-orange);
+            color: #000;
+        }
+        
+        .ladder-step.safe {
+            color: white;
+        }
+
+        .ladder-number {
+            margin-right: 15px;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        /* --- MODALES --- */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .modal-content {
+            background: var(--bg-panel);
+            border: 2px solid var(--accent-gold);
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            color: white;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .modal-title {
+            color: var(--accent-gold);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        /* Gráfico del Público */
+        #chart-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 200px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid white;
+        }
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 15%;
+        }
+        .bar {
+            width: 100%;
+            background: var(--accent-orange);
+            transition: height 1s ease-out;
+            height: 0;
+        }
+        .bar-label {
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        .modal-btn {
+            padding: 10px 25px;
+            background: var(--accent-gold);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+
+        /* --- ANIMACIONES Y RESPONSIVE --- */
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                flex-direction: column;
+            }
+            #ladder-container {
+                flex: 0 0 60px;
+                flex-direction: row;
+                border-left: none;
+                border-top: 2px solid var(--accent-gold);
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+            .ladder-step {
+                min-width: 80px;
+                justify-content: center;
+                flex-direction: column;
+                text-align: center;
+                margin: 0 5px;
+                font-size: 0.8rem;
+            }
+            .ladder-number { margin-right: 0; }
+            #answers-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA DE INICIO -->
+    <section id="start-screen">
+        <h1>¿QUIÉN QUIERE IR<br>AL CIELO?</h1>
+        <p style="margin-bottom: 30px; color: var(--text-dim);">Responde 15 preguntas para ganar el premio mayor.</p>
+        <button class="btn-start" onclick="game.start()">JUGAR AHORA</button>
+    </section>
+
+    <!-- JUEGO PRINCIPAL -->
+    <main id="game-container">
+        
+        <!-- ÁREA DE JUEGO -->
+        <section id="play-area">
+            
+            <!-- Logo SVG -->
+            <svg class="logo-small" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" stroke="#FFD700" stroke-width="5" fill="none"/>
+                <path d="M30 50 L45 65 L70 35" stroke="#FFD700" stroke-width="5" fill="none"/>
+            </svg>
+
+            <!-- Comodines -->
+            <div id="lifelines">
+                <button class="lifeline-btn" id="btn-5050" onclick="game.use5050()" title="50:50">50:50</button>
+                <button class="lifeline-btn" id="btn-phone" onclick="game.usePhone()" title="Llamar a un amigo">📞</button>
+                <button class="lifeline-btn" id="btn-audience" onclick="game.useAudience()" title="Ayuda del público">👥</button>
+            </div>
+
+            <!-- Pregunta -->
+            <div id="question-box">
+                <h2 id="question-text">Cargando pregunta...</h2>
+            </div>
+
+            <!-- Respuestas -->
+            <div id="answers-grid">
+                <!-- Se generan con JS -->
+            </div>
+        </section>
+
+        <!-- ESCALERA DE DINERO -->
+        <aside id="ladder-container">
+            <!-- Se genera con JS -->
+        </aside>
+
+    </main>
+
+    <!-- MODAL PARA MENSAJES / AYUDAS -->
+    <div id="modal-overlay">
+        <div class="modal-content" id="modal-content">
+            <!-- Contenido dinámico -->
+        </div>
+    </div>
+
+    <script>
+        /**
+         * BASE DE DATOS DE PREGUNTAS
+         * 15 Preguntas con dificultad creciente
+         */
+        const questionsDB = [
+            {
+                q: "¿A quién muestra bondad David en 2 Samuel 9 por amor a Jonatán?",
+                a: ["Abner", "Mefiboset", "Is-boset", "Joab"],
+                correct: 1,
+                prize: 100
+            },
+            {
+                q: "¿Qué le devuelve David a Mefiboset?",
+                a: ["El mando del ejercito", "Las tierras de Saúl", "El sacerdocio", "El arca del pacto"],
+                correct: 1,
+                prize: 200
+            },
+            {
+                q: "¿Qué provocó el conflicto con los amonitas en 2 Samuel 10?",
+                a: ["Un ataque sorpresa", "La muerte de Joab", "El maltrado a los mensajeros de David", "Un pacto roto"],
+                correct: 2,
+                prize: 300
+            },
+            {
+                q: "¿Quién dirige la batalla contra los amonitas y sirios?",
+                a: ["Absalón", "Joab y Abisai", "Itai el geteo", "Natán"],
+                correct: 1,
+                prize: 500
+            },
+            {
+                q: "¿Qué pecado comete David en 2 Samuel 11?",
+                a: ["Roba el arca", "Desobedece a Samuel", "Toma a Betsabé y mata a Urías", "Se alía con los filisteos"],
+                correct: 2,
+                prize: 1000
+            },
+            {
+                q: "¿Qué parábola usa Natán para confrontar a David?",
+                a: ["El sembrador", "El hombre rico y la oveja del pobre", "El hijo pródigo", "La viña del señor"],
+                correct: 1,
+                prize: 2000
+            },
+            {
+                q: "¿Cuál es la consecuencia inmediata del pecado de David según 2 Samuel 12?",
+                a: ["Pierde el trono", "Es expulsado de Jerusalén", "Joab se rebela", "Muere el hijo de Betsabé"],
+                correct: 3,
+                prize: 4000
+            },
+            {
+                q: "¿Qué crimen comete Amnón contra Tamar?",
+                a: ["La destierra", "La encarcela", "La deshonra", "La vende como esclava"],
+                correct: 2,
+                prize: 8000
+            },
+            {
+                q: "¿Qué hace Absalón después del crimen de Amnón?",
+                a: ["Lo perdona", "Lo mata", "Lo destierra", "Lo encarcela"],
+                correct: 1,
+                prize: 16000
+            },
+            {
+                q: "¿Qué estrategia usa Joab para que David permita el regreso de Absalón?",
+                a: ["Una carta secreta", "Una emboscada", "Envia a una mujer sabia de Tecoa", "Una pacto con los ancianos"],
+                correct: 2,
+                prize: 32000
+            },
+            {
+                q: "¿Cuántos años estuvo Absalón sin ver el rostro del rey después de regresar a Jerusalén?",
+                a: ["Uno", "Tres", "Cuatro", "Dos"],
+                correct: 3,
+                prize: 64000
+            },
+            {
+                q: "¿Qué hace Absalón para obligar a Joab a recibirlo cuando este lo ignora?",
+                a: ["Quema su campo de cebada", "Amenaza al ejército", "Envía mensajeros al rey", "Se presenta en el palacio"],
+                correct: 0,
+                prize: 125000
+            },
+            {
+                q: "¿Qué método usa Absalón para ganarse el corazón del pueblo en 2 Samuel 15?",
+                a: ["Reparte dinero", "Hace sacrificios públicos", "Atiende los pleitos del pueblo", "Promete bajar los impuestos"],
+                correct: 2,
+                prize: 250000
+            },
+            {
+                q: "¿Dónde inicia Absalón su conspiración para proclamarse rey?",
+                a: ["Jerusalén", "Hebrón", "Betel", "Samaria"],
+                correct: 1,
+                prize: 500000
+            },
+            {
+                q: "¿Qué decisión toma David cuando se entera de la conspiración de Absalón?",
+                a: ["Enfrentarlo de inmediato", "Enviarlo al exilio", "Huir de Jerusalén con sus siervos", "Arrestar a Joab"],
+                correct: 2,
+                prize: 1000000
+            }
+        ];
+
+        /**
+         * LÓGICA DEL JUEGO
+         */
+        const game = {
+            currentLevel: 0,
+            money: 0,
+            isSafe: [4, 9], // Índices (0-14) que son zonas seguras (niveles 5 y 10)
+            lifelines: {
+                fifty: true,
+                phone: true,
+                audience: true
+            },
+            
+            // Iniciar el juego
+            start: function() {
+                this.currentLevel = 0;
+                this.money = 0;
+                this.lifelines = { fifty: true, phone: true, audience: true };
+                this.updateLifelinesUI();
+                this.renderLadder();
+                
+                document.getElementById('start-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('start-screen').style.display = 'none';
+                    this.loadQuestion();
+                }, 500);
+            },
+
+            // Cargar pregunta actual
+            loadQuestion: function() {
+                const qData = questionsDB[this.currentLevel];
+                
+                // Actualizar texto
+                document.getElementById('question-text').innerText = qData.q;
+                
+                // Generar respuestas
+                const grid = document.getElementById('answers-grid');
+                grid.innerHTML = '';
+                
+                qData.a.forEach((text, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'answer-btn';
+                    btn.id = `btn-ans-${index}`;
+                    btn.innerHTML = `<span class="answer-letter">${String.fromCharCode(65+index)}:</span> ${text}`;
+                    btn.onclick = () => this.handleAnswer(index);
+                    
+                    // Restaurar visibilidad si fue ocultada por 50:50
+                    btn.style.visibility = 'visible';
+                    
+                    grid.appendChild(btn);
+                });
+
+                this.highlightLadder();
+            },
+
+            // Manejar selección de respuesta
+            handleAnswer: function(selectedIndex) {
+                const correctIndex = questionsDB[this.currentLevel].correct;
+                const btn = document.getElementById(`btn-ans-${selectedIndex}`);
+                
+                // Bloquear todos los botones
+                const allBtns = document.querySelectorAll('.answer-btn');
+                allBtns.forEach(b => b.style.pointerEvents = 'none');
+
+                btn.classList.add('selected');
+
+                // Simular tensión
+                setTimeout(() => {
+                    if (selectedIndex === correctIndex) {
+                        btn.classList.remove('selected');
+                        btn.classList.add('correct');
+                        this.money = questionsDB[this.currentLevel].prize;
+                        
+                        setTimeout(() => {
+                            this.nextLevel();
+                        }, 1500);
+                    } else {
+                        btn.classList.remove('selected');
+                        btn.classList.add('wrong');
+                        
+                        // Mostrar la correcta
+                        document.getElementById(`btn-ans-${correctIndex}`).classList.add('correct');
+                        
+                        setTimeout(() => {
+                            this.gameOver();
+                        }, 2000);
+                    }
+                }, 1500);
+            },
+
+            // Pasar al siguiente nivel
+            nextLevel: function() {
+                if (this.currentLevel < 14) {
+                    this.currentLevel++;
+                    this.loadQuestion();
+                } else {
+                    this.victory();
+                }
+            },
+
+            // Comodín 50:50
+            use5050: function() {
+                if (!this.lifelines.fifty) return;
+                
+                const correctIndex = questionsDB[this.currentLevel].correct;
+                let removedCount = 0;
+                const buttons = document.querySelectorAll('.answer-btn');
+                
+                // Deshabilitar botón
+                this.lifelines.fifty = false;
+                this.updateLifelinesUI();
+
+                // Ocultar 2 respuestas incorrectas
+                buttons.forEach((btn, idx) => {
+                    if (idx !== correctIndex && removedCount < 2 && btn.style.visibility !== 'hidden') {
+                        btn.style.visibility = 'hidden';
+                        removedCount++;
+                    }
+                });
+            },
+
+            // Comodín Llamada
+            usePhone: function() {
+                if (!this.lifelines.phone) return;
+                
+                this.lifelines.phone = false;
+                this.updateLifelinesUI();
+
+                const correctIndex = questionsDB[this.currentLevel].correct;
+                const letters = ['A', 'B', 'C', 'D'];
+                const correctLetter = letters[correctIndex];
+                
+                // Lógica simple de "amigo": 80% de acierto si es fácil, 50% si es difícil
+                const difficulty = this.currentLevel;
+                const friendIsSure = Math.random() > 0.3; 
+                const suggestedLetter = friendIsSure ? correctLetter : letters[Math.floor(Math.random()*4)];
+
+                showModal(
+                    "Llamando a un amigo...",
+                    `<p>Tu amigo dice: <strong>"¡Hola! Estoy casi seguro que la respuesta es la ${suggestedLetter}!"</strong></p>`
+                );
+            },
+
+            // Comodín Público
+            useAudience: function() {
+                if (!this.lifelines.audience) return;
+
+                this.lifelines.audience = false;
+                this.updateLifelinesUI();
+
+                const correctIndex = questionsDB[this.currentLevel].correct;
+                // Generar porcentajes
+                let percents = [0, 0, 0, 0];
+                
+                // Dar ventaja a la correcta
+                percents[correctIndex] = Math.floor(Math.random() * 40) + 40; // 40% a 80%
+                
+                let remaining = 100 - percents[correctIndex];
+                
+                for(let i=0; i<4; i++) {
+                    if(i !== correctIndex) {
+                        if (i === 3 || remaining === 0) {
+                            percents[i] = remaining;
+                        } else {
+                            let part = Math.floor(Math.random() * remaining);
+                            percents[i] = part;
+                            remaining -= part;
+                        }
+                    }
+                }
+
+                // Construir gráfico HTML
+                let chartHTML = '<div id="chart-container">';
+                const letters = ['A', 'B', 'C', 'D'];
+                percents.forEach((p, i) => {
+                    chartHTML += `
+                        <div class="bar-group">
+                            <div class="bar" style="height: ${p * 1.5}px"></div>
+                            <div class="bar-label">${p}%</div>
+                            <div class="bar-label" style="color:var(--accent-gold)">${letters[i]}</div>
+                        </div>
+                    `;
+                });
+                chartHTML += '</div>';
+
+                showModal("Resultados del Público", chartHTML);
+            },
+
+            // Renderizar Escalera
+            renderLadder: function() {
+                const ladder = document.getElementById('ladder-container');
+                ladder.innerHTML = '';
+                
+                // Recorremos al revés para que el nivel 15 esté arriba visualmente si usamos column-reverse
+                questionsDB.forEach((q, index) => {
+                    const step = document.createElement('div');
+                    step.className = 'ladder-step';
+                    step.id = `step-${index}`;
+                    step.innerHTML = `
+                        <span class="ladder-number">${index + 1}</span>
+                        <span>$${q.prize.toLocaleString()}</span>
+                    `;
+                    if (this.isSafe.includes(index)) {
+                        step.classList.add('safe');
+                        step.style.background = 'white'; // Marca blanca para seguros
+                        step.style.color = 'black';
+                    }
+                    ladder.appendChild(step);
+                });
+            },
+
+            highlightLadder: function() {
+                // Quitar anterior active
+                document.querySelectorAll('.ladder-step').forEach(el => el.classList.remove('active'));
+                // Poner nuevo active
+                const current = document.getElementById(`step-${this.currentLevel}`);
+                if(current) current.classList.add('active');
+                
+                // Auto-scroll en móvil
+                current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            },
+
+            updateLifelinesUI: function() {
+                document.getElementById('btn-5050').disabled = !this.lifelines.fifty;
+                document.getElementById('btn-phone').disabled = !this.lifelines.phone;
+                document.getElementById('btn-audience').disabled = !this.lifelines.audience;
+            },
+
+            gameOver: function() {
+                // Calcular dinero asegurado
+                let finalPrize = 0;
+                if (this.currentLevel >= 10) finalPrize = 32000;
+                else if (this.currentLevel >= 5) finalPrize = 1000;
+                else finalPrize = 0;
+
+                const content = `
+                    <h2 class="modal-title" style="color:var(--wrong-color)">¡Juego Terminado!</h2>
+                    <p>Te has llevado: <strong style="color:var(--accent-gold); font-size:1.5rem">$${finalPrize.toLocaleString()}</strong></p>
+                    <button class="modal-btn" onclick="location.reload()">Jugar de nuevo</button>
+                `;
+                
+                // Usamos el overlay directamente
+                const overlay = document.getElementById('modal-overlay');
+                const modalBody = document.getElementById('modal-content');
+                overlay.style.display = 'flex';
+                modalBody.innerHTML = content;
+            },
+
+            victory: function() {
+                const content = `
+                    <h2 class="modal-title" style="color:var(--correct-color)">¡EL CIELO TE ESPERA!</h2>
+                    <p>Has respondido correctamente a las 15 preguntas.</p>
+                    <p>Premio: <strong style="color:var(--accent-gold); font-size:1.5rem">$1,000,000</strong></p>
+                    <button class="modal-btn" onclick="location.reload()">Jugar de nuevo</button>
+                `;
+                
+                const overlay = document.getElementById('modal-overlay');
+                const modalBody = document.getElementById('modal-content');
+                overlay.style.display = 'flex';
+                modalBody.innerHTML = content;
+            }
+        };
+
+        // Función Helper para Modales
+        function showModal(title, htmlContent) {
+            const overlay = document.getElementById('modal-overlay');
+            const modalBody = document.getElementById('modal-content');
+            
+            modalBody.innerHTML = `
+                <h3 class="modal-title">${title}</h3>
+                ${htmlContent}
+                <button class="modal-btn" onclick="closeModal()">Cerrar</button>
+            `;
+            
+            overlay.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+    </script>
+</body>
+</html>
